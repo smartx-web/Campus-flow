@@ -1,32 +1,61 @@
-# Engineer A integration proposal
+# CampusFlow design decisions
 
-These contracts are proposed by Engineer A. Engineer B must review and agree;
-this document does not claim a discussion or agreement that has not occurred.
+This document records the implementation choices made for the current integrated
+starter. Both fellows should review and discuss these choices; this file alone is
+not evidence that a team discussion or approval has occurred.
 
-- Store tickets in a `list[dict]`. Pass the collection explicitly; no globals.
-- `create_ticket(tickets, title, category, urgency, affected_users)` validates all
-  inputs, appends exactly one dictionary, and returns that same dictionary.
-- Required fields: id, title, category, urgency, affected_users, priority, status,
-  assigned_to. New tickets are `open` and unassigned (`None`).
-- Business logic raises `ValueError` with useful messages. The future CLI catches
-  it and displays the message. Business logic does not call `input()` or `print()`.
-- Titles are trimmed; categories use canonical title case; urgency uses lowercase.
-  Surrounding whitespace is accepted. Counts accept positive Python integers or
-  ASCII digit strings from CLI input. Booleans, floats and decimal strings fail.
-- IDs use `T` plus a minimum of three digits. Generate max numeric ID + 1 from
-  the current collection, not len(collection) + 1. Reject malformed/duplicate
-  stored IDs instead of attempting an unsafe repair. Deletion is outside scope;
-  if later supported, persistence must track a high-water mark to prevent reuse
-  after deleting the largest ID.
-- Priority follows the four specified rules in order; it is deterministic Python.
-- Engineer B owns assignment, lifecycle, queue, reports and their tests. Resolved
-  tickets must not be changed until explicit reopen; creation never edits a ticket.
-- JSON persistence and the repeating CLI menu remain shared integration work.
-  Proposed `load_tickets(path) -> list[dict]` and `save_tickets(path, tickets)` live
-  in `campusflow/storage.py`. Missing files return an empty list; malformed JSON
-  raises a clear error. Save atomically and do not overwrite invalid existing data.
-- Caller saves after a successful operation. A failed save must be surfaced and
-  handled during integration; Engineer A's module alone guarantees only validation
-  failures leave the collection unchanged.
-- Unit tests exercise business functions directly. A JSON round-trip test checks
-  ID generation after reload, not the unimplemented filesystem storage feature.
+## Data model
+
+- Tickets are dictionaries collected in a list. The collection is passed to
+  functions explicitly; business logic does not depend on module-level ticket state.
+- Each ticket contains `id`, `title`, `category`, `urgency`, `affected_users`,
+  `priority`, `status`, and `assigned_to`.
+- A new ticket begins with status `open` and `assigned_to=None`.
+- Creation validates every input before appending, so invalid input does not
+  partially mutate the collection.
+
+## Priority and IDs
+
+- Priority rules are evaluated from most specific to least specific so the
+  critical condition cannot be hidden by the broader high-priority condition.
+- IDs use a `T` prefix and at least three digits. The next ID is one greater than
+  the largest existing numeric ID rather than the list length. Invalid or duplicate
+  stored IDs are rejected instead of silently repaired.
+- Ticket deletion is not currently supported. If deletion is introduced, ID
+  allocation must preserve a high-water mark so removed IDs are never reused.
+
+## Workflow
+
+- Valid lifecycle transitions are `open` → `in_progress` → `resolved`.
+- Moving an open ticket to `in_progress` requires an assignee.
+- A resolved ticket may only transition to `open`; this is the explicit reopen step.
+  Assignment of a resolved ticket is rejected until it has been reopened.
+- Business functions raise `ValueError`; the CLI catches these errors and displays
+  a useful message. Business logic does not call `input()` or `print()`.
+
+## Queue and reports
+
+- The unresolved queue excludes tickets whose status is `resolved`.
+- Queue ordering is critical, high, medium, low, then ascending numeric ticket ID.
+- Reports return totals and breakdowns by priority, status, and category. They are
+  computed from the current collection and are not stored as duplicated data.
+
+## JSON persistence
+
+- `load_tickets(path)` returns an empty list if the file does not exist.
+- Malformed JSON, duplicate IDs, invalid IDs, missing required fields, and invalid
+  stored status/priority values produce a clear error.
+- `save_tickets(path, tickets)` validates the collection and writes to a temporary
+  file before replacing the destination, reducing the chance of a partial write.
+- The caller saves after successful mutations. Runtime data is stored in
+  `data/tickets.json` and is excluded from version control.
+
+## Limitations and future improvements
+
+- This is a local single-user CLI, not a concurrent multi-user service. Two processes
+  writing the same JSON file at the same time could overwrite each other's changes.
+- JSON is appropriate for the assessment's small dataset but would not be ideal for
+  many simultaneous users; a database with transactions would be a stronger next step.
+- Assignee names are free text; the application does not maintain a fellow directory.
+- There is no delete operation, authentication, audit history, or concurrent-write
+  locking. These are outside the current scope.

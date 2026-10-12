@@ -1,43 +1,93 @@
 # CampusFlow
 
-A Python command-line campus helpdesk project. **Engineer A's contribution is
-implemented; the complete CLI product is not integrated yet.** Standard library only.
+CampusFlow is a standard-library-only Python command-line helpdesk ticket manager.
+It creates and validates tickets, assigns fellows, enforces the ticket lifecycle,
+orders unresolved work by priority, prints summary reports, and persists tickets to JSON.
 
-## Engineer A: implemented
+## Requirements
 
-- Validated ticket creation with all eight required fields.
-- Exact first-match priority calculation.
-- Consistent title, category, urgency and affected-user normalization.
-- Unique numeric IDs derived from existing records, including after JSON reload.
-- Automated tests for boundaries, invalid input, mutation safety and ID handling.
+- Python 3.9 or newer (no third-party packages required)
+- A terminal
 
-Run tests from the repository root with Python 3:
+## Run the application
+
+From the repository root:
+
+```bash
+python -m campusflow
+```
+
+The first run starts with an empty collection. Ticket data is stored at
+`data/tickets.json`, created automatically after the first successful write. The
+`data/` directory is intentionally ignored by Git because it contains runtime data.
+
+The menu supports:
+
+1. Create a ticket
+2. List all tickets
+3. View one ticket
+4. Assign a ticket to a fellow
+5. Change status or reopen a resolved ticket
+6. Show the unresolved work queue
+7. Show reports
+8. Save immediately
+0. Exit
+
+The app saves after successful create, assignment, and status-change operations.
+If the JSON file is missing, the app starts fresh. If it is malformed or has
+invalid records, the app displays an error instead of silently overwriting it.
+
+## Ticket rules
+
+- Categories: `Network`, `Hardware`, `Software`, `Other`
+- Urgency: `low`, `medium`, `high`
+- Affected-user count must be a positive integer.
+- Priority rules are checked in this order:
+  1. `high` urgency and at least 10 affected users → `critical`
+  2. `high` urgency or at least 10 affected users → `high`
+  3. `medium` urgency or at least 3 affected users → `medium`
+  4. Otherwise → `low`
+- IDs use `T001`, `T002`, ... and are generated from the largest numeric ID,
+  so gaps and reloads do not create duplicates.
+- Lifecycle: `open` → `in_progress` → `resolved`. A ticket must be assigned before
+  it can move to `in_progress`. A resolved ticket can only be changed after an
+  explicit transition back to `open`.
+- The unresolved queue sorts by `critical`, `high`, `medium`, `low`, then by the
+  numeric ticket ID in ascending order.
+
+## Run the tests
+
+From the repository root:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Use the creation contract from the future CLI:
+The test suite covers creation, validation, priority rules, ID handling, workflow,
+queue ordering, reports, JSON persistence, malformed data, and duplicate IDs.
 
-```python
-from campusflow.tickets import create_ticket
+## Project layout
 
-tickets = []  # Replace with load_tickets(path) after storage is implemented.
-ticket = create_ticket(tickets, "Campus Wi-Fi is down", "Network", "high", "15")
-print(ticket)  # T001, critical, open, assigned_to=None
+```text
+campusflow/
+  tickets.py    # creation, validation, priority, ID generation
+  workflow.py   # lookup, assignment, status transitions
+  queue.py      # unresolved work queue
+  reports.py    # ticket totals and breakdowns
+  storage.py    # JSON loading and atomic saving
+  cli.py        # repeating interactive menu
+  __main__.py   # python -m campusflow entry point
+tests/          # unittest test suite
+docs/           # design decisions and AI learning-log guidance
 ```
 
-Business functions raise `ValueError`; catch it at the CLI boundary and display the
-message. No third-party packages, framework, database, AI SDK or API key are needed.
+## Team and assessment responsibilities
 
-## Integration still required
-
-Engineer B contributes assignment, workflow, work queue, reports and matching tests.
-Both engineers agree the contracts, integrate JSON file storage and the repeating
-CLI menu, run the full suite on main, and demonstrate the complete application.
-See `docs/design-decisions.md` and `docs/ai-learning-log.md`.
-
-Each fellow must contribute real code and tests on their own branch, author a PR,
-review the partner's PR and receive genuine partner approval before merging. This
-AI-assisted contribution and its notes do not replace those learning/review duties.
-Runtime data belongs in ignored `data/tickets.json`; do not commit personal data.
+This implementation is AI-assisted starter work and does not substitute for the
+assessment's collaboration evidence. Both fellows should understand the code, run
+the tests, make meaningful contributions on their own branches, open pull requests,
+review the partner's PR with at least two substantive observations, and obtain the
+required partner approval before merging. Each fellow must independently record
+three genuine AI-learning interactions, including one AI suggestion they verified
+and corrected, improved, or rejected. Do not claim a review, approval, test, or
+learning interaction that did not actually happen.

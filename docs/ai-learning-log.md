@@ -1,33 +1,47 @@
-# AI-assisted implementation notes — Engineer A
+# AI learning log — complete separately for each fellow
 
-These are AI-authored implementation/verification notes, not evidence that either
-fellow independently learned, wrote code, or reviewed a partner's PR. Each fellow
-must add their own genuine interactions, explanations and verification evidence.
+**Important:** The implementation in this repository was generated with AI assistance.
+The example notes below can help you understand technical decisions, but they are
+not evidence of your own learning interactions. Each fellow must replace/add their
+own real dated entries, describe what they personally asked and learned, and verify
+claims by running the code or inspecting the tests. Do not invent conversations,
+test outputs, code authorship, or review evidence.
 
-## 1. First-match priority rules
-Learning question: Why must critical be checked before high?
-AI explanation: A high-urgency ticket affecting 10 people satisfies both conditions;
-returning high first would make critical unreachable.
-Verification: `PriorityTests` explicitly covers high/9 -> high, high/10 -> critical,
-medium/10 -> high, and low/2 -> low versus low/3 -> medium.
+## Entry template (complete at least three genuine interactions)
 
-## 2. Suggestion rejected: len(tickets) + 1 for IDs
-Candidate shortcut: Use the list length to generate the next ID.
-Correction: IDs may be unsorted or contain gaps after reload. Scan numeric IDs and
-use max + 1; validate duplicates and malformed IDs first.
-Verification: `test_unsorted_ids_and_gaps_use_numeric_max` uses T010, T002, T009 and
-expects T011. Tests cover JSON round-trip and rollover from T999 to T1000.
-This is an AI-generated critique, not a fellow's independent correction.
+### Interaction 1 — [date and topic]
+- **My question/prompt:** [paste or accurately summarize your actual question]
+- **AI suggestion/explanation:** [summarize the response]
+- **What I understood in my own words:** [explain it yourself]
+- **Verification I performed:** [test, command, code trace, or documentation checked]
+- **Result/evidence:** [actual result, not expected output]
+- **What I changed or decided:** [what you did after verification]
 
-## 3. Integer validation trap
-Learning question: Is isinstance(value, int) enough for affected_users?
-AI explanation: Python bool is an int subclass. Accepting True would store one user
-from invalid input. `int(1.5)` also truncates invalid decimal input.
-Decision: Require exact int type or positive ASCII digit text; do not coerce floats.
-Verification: Tests reject True, False, 1.0, 2.5, decimal strings, zero and negatives.
+### Interaction 2 — [date and topic]
+- **My question/prompt:**
+- **AI suggestion/explanation:**
+- **What I understood in my own words:**
+- **Verification I performed:**
+- **Result/evidence:**
+- **What I changed or decided:**
 
-## Fellow completion required
-For each of at least three real interactions, record your question, AI response,
-your own understanding, the check you ran and what you changed or rejected. Add
-actual dates and outputs. Explain one independent correction in your own words.
-Do not relabel the notes above as personal learning evidence.
+### Interaction 3 — [date and topic; include one verified correction]
+- **My question/prompt:**
+- **AI suggestion that I checked:**
+- **Why I accepted, improved, or rejected it:**
+- **Verification I performed:**
+- **Actual result/evidence:**
+- **My corrected or improved decision:**
+
+## Topics you may investigate (only write about interactions you really had)
+
+- Why the critical priority condition must be checked before the broader high rule.
+- Why `len(tickets) + 1` is unsafe when IDs have gaps or records are reloaded.
+- Why `bool` needs special handling when validating positive integers in Python.
+- Why a resolved ticket needs an explicit reopen transition.
+- How writing JSON to a temporary file before replacement reduces partial-write risk.
+- How a queue can sort by both priority rank and numeric ticket ID.
+
+Each fellow should save their own notes and be ready to explain their implementation.
+The team's PRs, substantive review comments, approval, and test runs must also be real
+and completed through the repository workflow.
